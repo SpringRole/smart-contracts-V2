@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.5;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "tabookey-gasless/contracts/RelayRecipient.sol";
@@ -23,7 +23,7 @@ contract Attestation is Ownable, RelayRecipient {
     /**
      * Function use by user to attest
      */
-    function write(string _type, string _data) public returns (bool) {
+    function write(string memory _type, string memory _data) public returns (bool) {
         emit Attest(get_sender(), _type, _data);
         return true;
     }
@@ -31,7 +31,7 @@ contract Attestation is Ownable, RelayRecipient {
     /**
      * Function use by DApp owner to be committed in case of data migration
      */
-    function writeByOwner(string _type, string _data, string _address) public onlyOwner returns (bool) {
+    function writeByOwner(string memory _type, string memory _data, string memory _address) public onlyOwner returns (bool) {
         emit AttestByOwner(_address, _type, _data);
         return true;
     }
@@ -63,7 +63,7 @@ contract Attestation is Ownable, RelayRecipient {
     function post_relayed_call(
         address, /*relay*/
         address, /*from*/
-        bytes, /*encoded_function*/
+        bytes memory, /*encoded_function*/
         bool, /*success*/
         uint, /*used_gas*/
         uint /*transaction_fee*/
