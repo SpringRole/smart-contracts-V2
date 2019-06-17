@@ -158,8 +158,7 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
     function reserveVanityURLByOwner(
         address _to,
         string memory _vanity_url,
-        string memory _springrole_id,
-        string memory _data
+        string memory _springrole_id
     ) 
         public
         onlyOwner 
