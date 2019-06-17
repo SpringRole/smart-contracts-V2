@@ -125,13 +125,9 @@ contract('VanityURL', function([owner, user1, user2, user3, user4, user5]) {
     describe('Reserve a Vanity url for other user', function() {
       it('should not be able to reserve a url', async function() {
         await shouldFail.reverting(
-          vanityInstance.reserveVanityURLByOwner(
-            user3,
-            'testowner',
-            'srind3',
-            '0x',
-            { from: user4 }
-          )
+          vanityInstance.reserveVanityURLByOwner(user3, 'testowner', 'srind3', {
+            from: user4
+          })
         );
       });
     });
@@ -150,7 +146,6 @@ contract('VanityURL', function([owner, user1, user2, user3, user4, user5]) {
           user4,
           'testowner',
           'srind3',
-          '0x',
           { from: owner }
         );
       });
