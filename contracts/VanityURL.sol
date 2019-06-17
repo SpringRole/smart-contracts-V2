@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.5;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
@@ -211,7 +211,7 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      * @dev Function to kill contract
      */
     function kill() public onlyOwner {
-        selfdestruct(owner());
+        selfdestruct(address(uint160(owner())));
     }
 
     /**
@@ -242,7 +242,7 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
         uint length =  bytes(_vanity_url).length;
 
         if(!(length >= 4 && length <= 200)) {
-            return false
+            return false;
         }
 
         for (uint i =0; i < length; i++) {
