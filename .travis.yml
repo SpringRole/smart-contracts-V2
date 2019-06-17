@@ -25,4 +25,5 @@ before_script:
 
 script:
   - sleep 15
+  - truffle compile
   - yarn test
