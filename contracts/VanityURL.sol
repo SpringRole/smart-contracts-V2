@@ -240,7 +240,11 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      */
     function checkForValidity(string _vanity_url) internal pure returns (bool) {
         uint length =  bytes(_vanity_url).length;
-        require(length >= 4 && length <= 200);
+
+        if(!(length >= 4 && length <= 200)) {
+            return false
+        }
+
         for (uint i =0; i < length; i++) {
             var c = bytes(_vanity_url)[i];
             if ((c < 48 || c > 122 || (c > 57 && c < 65) || (c > 90 && c < 97)) && (c != 95))
