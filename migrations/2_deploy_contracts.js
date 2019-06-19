@@ -2,7 +2,7 @@ const VanityURL = artifacts.require('./VanityURL.sol');
 const Attestation = artifacts.require('./Attestation.sol');
 const RelayHub = artifacts.require('./RelayHub.sol');
 
-const relayHubAddr = '0x9C57C0F1965D225951FE1B2618C92Eefd687654F';
+const relayHubAddr = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B';
 
 module.exports = async deployer => {
   deployer.then(async function() {

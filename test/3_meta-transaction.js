@@ -1,10 +1,10 @@
 const Attestation = artifacts.require('Attestation');
 const RelayHub = artifacts.require('RelayHub');
 const VanityURL = artifacts.require('VanityURL');
-const { RelayProvider } = require('tabookey-gasless');
+const RelayProvider = require('./tabookey-gasless/relayclient/RelayProvider');
 
 const { expectEvent } = require('openzeppelin-test-helpers');
-const relayHubAddr = '0x9C57C0F1965D225951FE1B2618C92Eefd687654F';
+const relayHubAddr = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B';
 
 contract('Attestation & VanityURL (meta txns test)', function([
   _,
@@ -16,7 +16,7 @@ contract('Attestation & VanityURL (meta txns test)', function([
   let relay_client_config;
 
   before(async function() {
-    const gasPricePercent = 20;
+    const gasPricePercent = 100;
     gasPrice = ((await web3.eth.getGasPrice()) * (100 + gasPricePercent)) / 100;
     gasless = await web3.eth.personal.newAccount('password');
     web3.eth.personal.unlockAccount(gasless, 'password');
@@ -33,6 +33,7 @@ contract('Attestation & VanityURL (meta txns test)', function([
         force_gasLimit: 900000, //override requested gas limit.
         verbose: process.env.DEBUG
       };
+
       let relayProvider = await new RelayProvider(
         web3.currentProvider,
         relay_client_config
