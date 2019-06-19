@@ -1,7 +1,8 @@
 pragma solidity ^0.5.5;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "tabookey-gasless/contracts/RelayRecipient.sol";
+import "./tabookey-gasless/contracts/IRelayHub.sol";
+import "./tabookey-gasless/contracts/RelayRecipient.sol";
 
 
 /**
@@ -12,19 +13,28 @@ contract Attestation is Ownable, RelayRecipient {
     event Attest(address _address, string _type, string _data);
     event AttestByOwner(string _address, string _type, string _data);
 
-    mapping (address => bool) public relays_whitelist;
+    event RecipientPreCall();
+    event RecipientPostCall(uint usedGas, bytes32 preRetVal);
+
+
+    mapping (address => bool) public relaysWhitelist;
     
     address public blacklisted;
+    bool public rejectAcceptRelayCall;
 
-    constructor(RelayHub rhub) public {
-        init_relay_hub(rhub);
+    constructor(IRelayHub rhub) public {
+        setRelayHub(rhub);
+    }
+
+    function setRejectAcceptRelayCall(bool val) public onlyOwner {
+        rejectAcceptRelayCall = val;
     }
 
     /**
      * Function use by user to attest
      */
     function write(string memory _type, string memory _data) public returns (bool) {
-        emit Attest(get_sender(), _type, _data);
+        emit Attest(getSender(), _type, _data);
         return true;
     }
 
@@ -36,40 +46,50 @@ contract Attestation is Ownable, RelayRecipient {
         return true;
     }
 
-    function deposit() public payable {
-        get_relay_hub().depositFor.value(msg.value)(address(this));
-    }
-
-    function withdraw() public onlyOwner {
-        uint balance = get_relay_hub().balances(address(this));
-        get_relay_hub().withdraw(balance);
-        msg.sender.transfer(balance);
-    }
-
-    function accept_relayed_call(
-        address relay,
+    function acceptRelayedCall(
+        address relay, 
         address from,
-        bytes memory, /*encoded_function*/
-        uint, /*gas_price*/
-        uint /*transaction_fee*/
+        bytes memory, /*encodedFunction*/
+        uint, /*gasPrice*/ 
+        uint, /*transactionFee*/
+        bytes memory /*approval*/
     ) 
-        public view returns(uint32)
+        public view returns (uint)
     {
-        if (relays_whitelist[relay]) return 0;
-        if (from == blacklisted) return 3;
+        if (relaysWhitelist[relay]) {
+            return 0;
+        }
+        
+        if (from == blacklisted) {
+            return 3;
+        }
+
         return 0;
     }
-    
-    function post_relayed_call(
+
+    function preRelayedCall(
         address, /*relay*/
         address, /*from*/
-        bytes memory, /*encoded_function*/
+        bytes memory, /*encodedFunction*/
+        uint /*transactionFee*/
+    )
+        public returns (bytes32)
+    {
+        emit RecipientPreCall();
+    }
+
+    function postRelayedCall(
+        address, /*relay*/
+        address, /*from*/
+        bytes memory, /*encodedFunction*/
         bool, /*success*/
-        uint, /*used_gas*/
-        uint /*transaction_fee*/
+        uint usedGas,
+        uint transactionFee,
+        bytes32 preRetVal
     ) 
         public
     {
-        //TODO: Implement anything post relay call if needed.
+        emit RecipientPostCall(usedGas * tx.gasprice * (transactionFee + 100)/100, preRetVal);
     }
+    
 }
