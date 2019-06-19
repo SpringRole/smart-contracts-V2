@@ -5,25 +5,25 @@ language: node_js
 node_js:
   - "10"
 
-services:
-  - docker
+# services:
+#   - docker
 
 cache:
   yarn: true
   directories:
     - node_modules
 
-before_install:
-  - docker pull tabookey/gsn-dev-server:v0.3.1
+# before_install:
+#   - docker pull tabookey/gsn-dev-server:v0.3.1
 
 install:
   - yarn global add truffle@5.0.2
   - yarn
 
-before_script:
-  - docker run --name gsn-dock --rm -p 8090:8090 -p 8545:8545 tabookey/gsn-dev-server:v0.3.1 /start-relay-with-ganache.sh > /dev/null 2>&1 &
+# before_script:
+#   - docker run --name gsn-dock --rm -p 8090:8090 -p 8545:8545 tabookey/gsn-dev-server:v0.3.1 /start-relay-with-ganache.sh > /dev/null 2>&1 &
 
 script:
-  - sleep 15
+  # - sleep 15
   - truffle compile
   - yarn test
