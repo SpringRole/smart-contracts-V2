@@ -1,10 +1,8 @@
 const Attestation = artifacts.require('Attestation');
-const RelayHub = artifacts.require('RelayHub');
 const VanityURL = artifacts.require('VanityURL');
-const RelayProvider = require('./tabookey-gasless/relayclient/RelayProvider');
-
+const { RelayProvider } = require('tabookey-gasless');
+const { expect } = require('chai');
 const { expectEvent } = require('openzeppelin-test-helpers');
-const relayHubAddr = '0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B';
 
 contract('Attestation & VanityURL (meta txns test)', function([
   _,
@@ -20,7 +18,6 @@ contract('Attestation & VanityURL (meta txns test)', function([
     gasPrice = ((await web3.eth.getGasPrice()) * (100 + gasPricePercent)) / 100;
     gasless = await web3.eth.personal.newAccount('password');
     web3.eth.personal.unlockAccount(gasless, 'password');
-    rhub = await RelayHub.at(relayHubAddr);
     attestationInstance = await Attestation.deployed();
     vanityInstance = await VanityURL.deployed();
   });
@@ -30,7 +27,7 @@ contract('Attestation & VanityURL (meta txns test)', function([
       relay_client_config = {
         txfee: 60,
         force_gasPrice: gasPrice, //override requested gas price
-        force_gasLimit: 900000, //override requested gas limit.
+        force_gasLimit: 900000,
         verbose: process.env.DEBUG
       };
 
@@ -70,27 +67,27 @@ contract('Attestation & VanityURL (meta txns test)', function([
       });
 
       it('Should be able to retrive the same wallet address', async function() {
-        (await vanityInstance.retrieveWalletForVanity.call(
-          'sr_user'
-        )).should.equal(gasless);
+        expect(
+          await vanityInstance.retrieveWalletForVanity.call('sr_user')
+        ).equal(gasless);
       });
 
       it('Should be able to retrive the same Vanity', async function() {
-        (await vanityInstance.retrieveVanityForWallet.call(
-          gasless
-        )).should.equal('sr_user');
+        expect(
+          await vanityInstance.retrieveVanityForWallet.call(gasless)
+        ).equal('sr_user');
       });
 
       it('Should be able to retrive the same springrole id', async function() {
-        (await vanityInstance.retrieveSpringroleIdForVanity.call(
-          'sr_user'
-        )).should.equal('srind1');
+        expect(
+          await vanityInstance.retrieveSpringroleIdForVanity.call('sr_user')
+        ).equal('srind1');
       });
 
       it('Should be able to retrive the same Vanity', async function() {
-        (await vanityInstance.retrieveVanityForSpringroleId.call(
-          'srind1'
-        )).should.equal('sr_user');
+        expect(
+          await vanityInstance.retrieveVanityForSpringroleId.call('srind1')
+        ).equal('sr_user');
       });
     });
 
@@ -103,15 +100,15 @@ contract('Attestation & VanityURL (meta txns test)', function([
       });
 
       it('Vanity url should be assigned to user', async function() {
-        (await vanityInstance.retrieveVanityForWallet.call(
-          gasless
-        )).should.equal('nervehammer');
+        expect(
+          await vanityInstance.retrieveVanityForWallet.call(gasless)
+        ).equal('nervehammer');
       });
 
       it('Vanity url should be able to retrive from assigned user wallet address', async function() {
-        (await vanityInstance.retrieveWalletForVanity.call(
-          'nervehammer'
-        )).should.equal(gasless);
+        expect(
+          await vanityInstance.retrieveWalletForVanity.call('nervehammer')
+        ).equal(gasless);
       });
     });
 
@@ -124,15 +121,15 @@ contract('Attestation & VanityURL (meta txns test)', function([
       });
 
       it('should be able to retrive the same Vanity', async function() {
-        (await vanityInstance.retrieveVanityForWallet.call(
-          anotherUser
-        )).should.equal('nervehammer');
+        expect(
+          await vanityInstance.retrieveVanityForWallet.call(anotherUser)
+        ).equal('nervehammer');
       });
 
       it('should be able to retrive the new wallet address', async function() {
-        (await vanityInstance.retrieveWalletForVanity.call(
-          'nervehammer'
-        )).should.equal(anotherUser);
+        expect(
+          await vanityInstance.retrieveWalletForVanity.call('nervehammer')
+        ).equal(anotherUser);
       });
     });
   });
