@@ -2,8 +2,8 @@ pragma solidity ^0.5.5;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
-import "./tabookey-gasless/contracts/IRelayHub.sol";
-import "./tabookey-gasless/contracts/RelayRecipient.sol";
+import "tabookey-gasless/contracts/IRelayHub.sol";
+import "tabookey-gasless/contracts/RelayRecipient.sol";
 
 
 /**
@@ -37,15 +37,25 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
         setRelayHub(rhub);
     }
 
+    function deposit() public payable {
+        getRelayHub().depositFor.value(msg.value)(address(this));
+    }
+
+    function withdraw() public onlyOwner {
+        uint256 balance = withdrawAllBalance();
+        msg.sender.transfer(balance);
+    }
+
     function acceptRelayedCall(
         address relay,
         address from,
-        bytes memory, /*encodedFunction*/
-        uint, /*gasPrice*/ 
-        uint, /*transactionFee*/
-        bytes memory /*approval*/
+        bytes memory /*encodedFunction*/,
+        uint /*gasPrice*/,
+        uint /*transactionFee*/,
+        bytes memory /*signature*/,
+        bytes memory /*approvalData*/
     ) 
-        public view returns (uint)
+        public view returns (uint) 
     {
         if (relaysWhitelist[relay]) {
             return 0;
@@ -81,6 +91,13 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
         public
     {
         emit RecipientPostCall(usedGas * tx.gasprice * (transactionFee + 100)/100, preRetVal);
+    }
+
+
+    function withdrawAllBalance() private returns (uint256) {
+        uint256 balance = getRelayHub().balanceOf(address(this));
+        getRelayHub().withdraw(balance);
+        return balance;
     }
     
     /* function to retrive wallet address from vanity url */
