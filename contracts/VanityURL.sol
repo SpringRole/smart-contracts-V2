@@ -93,7 +93,6 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
         emit RecipientPostCall(usedGas * tx.gasprice * (transactionFee + 100)/100, preRetVal);
     }
 
-
     function withdrawAllBalance() private returns (uint256) {
         uint256 balance = getRelayHub().balanceOf(address(this));
         getRelayHub().withdraw(balance);

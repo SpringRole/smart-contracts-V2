@@ -9,7 +9,7 @@
   "dependencies": {
     "openzeppelin-solidity": "2.3.0",
     "tabookey-gasless": "0.4.0-beta1",
-    "truffle": "5.0.21",
+    "truffle": "5.0.27",
     "truffle-hdwallet-provider-privkey": "^0.3.0"
   },
   "devDependencies": {
