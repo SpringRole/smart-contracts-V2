@@ -1,7 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.5;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
+import "tabookey-gasless/contracts/IRelayHub.sol";
 import "tabookey-gasless/contracts/RelayRecipient.sol";
 
 
@@ -21,72 +22,101 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
     // This declares a state variable that mapping for Springrole ID to vanityURL
     mapping (string => string) private springrole_id_vanity_mapping;
     // mapping of all whitelisted relays
-    mapping (address => bool) public relays_whitelist;
+    mapping (address => bool) public relaysWhitelist;
     
     event VanityReserved(address _to, string _vanity_url);
     event VanityTransfered(address _to, address _from, string _vanity_url);
     event VanityReleased(string _vanity_url);
 
+    event RecipientPreCall();
+    event RecipientPostCall(uint usedGas, bytes32 preRetVal);
+
     address public blacklisted;
 
-    constructor(RelayHub rhub) public {
-        init_relay_hub(rhub);
+    constructor(IRelayHub rhub) public {
+        setRelayHub(rhub);
     }
 
     function deposit() public payable {
-        get_relay_hub().depositFor.value(msg.value)(address(this));
+        getRelayHub().depositFor.value(msg.value)(address(this));
     }
 
     function withdraw() public onlyOwner {
-        uint balance = get_relay_hub().balances(address(this));
-        get_relay_hub().withdraw(balance);
+        uint256 balance = withdrawAllBalance();
         msg.sender.transfer(balance);
     }
 
-    function accept_relayed_call(
+    function acceptRelayedCall(
         address relay,
         address from,
-        bytes memory, /*encoded_function*/
-        uint, /*gas_price*/
-        uint /*transaction_fee*/
+        bytes memory /*encodedFunction*/,
+        uint /*gasPrice*/,
+        uint /*transactionFee*/,
+        bytes memory /*signature*/,
+        bytes memory /*approvalData*/
     ) 
-        public view returns(uint32)
+        public view returns (uint) 
     {
-        if (relays_whitelist[relay]) return 0;
-        if (from == blacklisted) return 3;
+        if (relaysWhitelist[relay]) {
+            return 0;
+        }
+        
+        if (from == blacklisted) {
+            return 3;
+        }
+
         return 0;
     }
-    
-    function post_relayed_call(
+
+    function preRelayedCall(
         address, /*relay*/
         address, /*from*/
-        bytes, /*encoded_function*/
+        bytes memory, /*encodedFunction*/
+        uint /*transactionFee*/
+    )
+        public returns (bytes32)
+    {
+        emit RecipientPreCall();
+    }
+
+    function postRelayedCall(
+        address, /*relay*/
+        address, /*from*/
+        bytes memory, /*encodedFunction*/
         bool, /*success*/
-        uint, /*used_gas*/
-        uint /*transaction_fee*/
+        uint usedGas,
+        uint transactionFee,
+        bytes32 preRetVal
     ) 
         public
     {
-        //TODO: Implement anything post relay call if needed.
+        emit RecipientPostCall(usedGas * tx.gasprice * (transactionFee + 100)/100, preRetVal);
     }
 
+
+    function withdrawAllBalance() private returns (uint256) {
+        uint256 balance = getRelayHub().balanceOf(address(this));
+        getRelayHub().withdraw(balance);
+        return balance;
+    }
+    
     /* function to retrive wallet address from vanity url */
-    function retrieveWalletForVanity(string _vanity_url) public view returns (address) {
+    function retrieveWalletForVanity(string calldata _vanity_url) external view returns (address) {
         return vanity_address_mapping[_vanity_url];
     }
 
     /* function to retrive vanity url from address */
-    function retrieveVanityForWallet(address _address) public view returns (string memory) {
+    function retrieveVanityForWallet(address _address) external view returns (string memory) {
         return address_vanity_mapping[_address];
     }
 
     /* function to retrive wallet springrole id from vanity url */
-    function retrieveSpringroleIdForVanity(string _vanity_url) public view returns (string memory) {
+    function retrieveSpringroleIdForVanity(string calldata _vanity_url) external view returns (string memory) {
         return vanity_springrole_id_mapping[_vanity_url];
     }
 
     /* function to retrive vanity url from address */
-    function retrieveVanityForSpringroleId(string _springrole_id) public view returns (string memory) {
+    function retrieveVanityForSpringroleId(string calldata _springrole_id) external view returns (string memory) {
         return springrole_id_vanity_mapping[_springrole_id];
     }
 
@@ -99,21 +129,21 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      * 5. Transfer the token
      * 6. Update the mapping variables
      */
-    function reserve(string _vanity_url, string _springrole_id) public whenNotPaused {
+    function reserve(string memory _vanity_url, string memory _springrole_id) public whenNotPaused {
         _vanity_url = _toLower(_vanity_url);
         require(checkForValidity(_vanity_url));
         require(vanity_address_mapping[_vanity_url] == address(0x0));
-        require(bytes(address_vanity_mapping[get_sender()]).length == 0);
+        require(bytes(address_vanity_mapping[getSender()]).length == 0);
         require(bytes(springrole_id_vanity_mapping[_springrole_id]).length == 0);
         /* adding to vanity address mapping */
-        vanity_address_mapping[_vanity_url] = get_sender();
+        vanity_address_mapping[_vanity_url] = getSender();
         /* adding to vanity springrole id mapping */
         vanity_springrole_id_mapping[_vanity_url] = _springrole_id;
         /* adding to springrole id vanity mapping */
         springrole_id_vanity_mapping[_springrole_id] = _vanity_url;
         /* adding to address vanity mapping */
-        address_vanity_mapping[get_sender()] = _vanity_url;
-        emit VanityReserved(get_sender(), _vanity_url);
+        address_vanity_mapping[getSender()] = _vanity_url;
+        emit VanityReserved(getSender(), _vanity_url);
     }
 
     /**
@@ -125,19 +155,19 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      * 5. Check if vanity url is present in reserved keyword
      * 6. Update the mapping variables
      */
-    function changeVanityURL(string _vanity_url, string _springrole_id) public whenNotPaused {
-        require(bytes(address_vanity_mapping[get_sender()]).length != 0);
+    function changeVanityURL(string memory _vanity_url, string memory _springrole_id) public whenNotPaused {
+        require(bytes(address_vanity_mapping[getSender()]).length != 0);
         require(bytes(springrole_id_vanity_mapping[_springrole_id]).length == 0);
         _vanity_url = _toLower(_vanity_url);
         require(checkForValidity(_vanity_url));
         require(vanity_address_mapping[_vanity_url] == address(0x0));
 
-        vanity_address_mapping[_vanity_url] = get_sender();
-        address_vanity_mapping[get_sender()] = _vanity_url;
+        vanity_address_mapping[_vanity_url] = getSender();
+        address_vanity_mapping[getSender()] = _vanity_url;
         vanity_springrole_id_mapping[_vanity_url] = _springrole_id;
         springrole_id_vanity_mapping[_springrole_id] = _vanity_url;
 
-        emit VanityReserved(get_sender(), _vanity_url);
+        emit VanityReserved(getSender(), _vanity_url);
     }
 
     /**
@@ -145,11 +175,11 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      */
     function transferOwnershipForVanityURL(address _to) public whenNotPaused {
         require(bytes(address_vanity_mapping[_to]).length == 0);
-        require(bytes(address_vanity_mapping[get_sender()]).length != 0);
-        address_vanity_mapping[_to] = address_vanity_mapping[get_sender()];
-        vanity_address_mapping[address_vanity_mapping[get_sender()]] = _to;
-        emit VanityTransfered(get_sender(), _to, address_vanity_mapping[get_sender()]);
-        delete (address_vanity_mapping[get_sender()]);
+        require(bytes(address_vanity_mapping[getSender()]).length != 0);
+        address_vanity_mapping[_to] = address_vanity_mapping[getSender()];
+        vanity_address_mapping[address_vanity_mapping[getSender()]] = _to;
+        emit VanityTransfered(getSender(), _to, address_vanity_mapping[getSender()]);
+        delete (address_vanity_mapping[getSender()]);
     }
 
     /** 
@@ -157,9 +187,8 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      */
     function reserveVanityURLByOwner(
         address _to,
-        string _vanity_url,
-        string _springrole_id,
-        string _data
+        string memory _vanity_url,
+        string memory _springrole_id
     ) 
         public
         onlyOwner 
@@ -168,7 +197,7 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
         _vanity_url = _toLower(_vanity_url);
         require(checkForValidity(_vanity_url));
         /* check if vanity url is being used by anyone */
-        if (vanity_address_mapping[_vanity_url] != address(0x0)) {
+        if (vanity_address_mapping[_vanity_url] != address(0)) {
             /* Sending Vanity Transfered Event */
             emit VanityTransfered(vanity_address_mapping[_vanity_url], _to, _vanity_url);
             /* delete from address mapping */
@@ -193,8 +222,8 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
     /**
      * @dev Function to release a Vanity URL by Owner
      */
-    function releaseVanityUrl(string _vanity_url) public onlyOwner whenNotPaused {
-        require(vanity_address_mapping[_vanity_url] != address(0x0));
+    function releaseVanityUrl(string memory _vanity_url) public onlyOwner whenNotPaused {
+        require(vanity_address_mapping[_vanity_url] != address(0));
         /* delete from address mapping */
         delete (address_vanity_mapping[vanity_address_mapping[_vanity_url]]);
         /* delete from vanity mapping */
@@ -211,22 +240,24 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
      * @dev Function to kill contract
      */
     function kill() public onlyOwner {
-        selfdestruct(owner());
+        selfdestruct(address(uint160(owner())));
     }
 
     /**
      * @dev Function to make lowercase
      */
-    function _toLower(string str) internal pure returns (string) {
+    function _toLower(string memory str) internal pure returns (string memory) {
         bytes memory bStr = bytes(str);
         bytes memory bLower = new bytes(bStr.length);
+        uint8 c;
         for (uint i = 0; i < bStr.length; i++) {
+            c = uint8(bStr[i]);
             // Uppercase character...
-            if ((bStr[i] >= 65) && (bStr[i] <= 90)) {
+            if (c >= 65 && c <= 90) {
                 // So we add 32 to make it lowercase
-                bLower[i] = bytes1(int(bStr[i]) + 32);
+                bLower[i] = bytes1(c + 32);
             } else {
-                bLower[i] = bStr[i];
+                bLower[i] = bytes1(c);
             }
         }
         return string(bLower);
@@ -235,17 +266,24 @@ contract VanityURL is Ownable, Pausable, RelayRecipient {
     /**
      * @dev Function to verify vanityURL
      * 1. Minimum length 4
-     * 2.Maximum lenght 200
-     * 3.Vanity url is only alphanumeric
+     * 2. Maximum lenght 200
+     * 3. Vanity url is only alphanumeric 
      */
-    function checkForValidity(string _vanity_url) internal pure returns (bool) {
+    function checkForValidity(string memory _vanity_url) internal pure returns (bool) {
         uint length =  bytes(_vanity_url).length;
-        require(length >= 4 && length <= 200);
-        for (uint i =0; i < length; i++) {
-            var c = bytes(_vanity_url)[i];
-            if ((c < 48 || c > 122 || (c > 57 && c < 65) || (c > 90 && c < 97)) && (c != 95))
-                return false;
+        uint8 c;
+        if (!(length >= 4 && length <= 200)) {
+            return false;
         }
+        
+        for (uint i =0; i < length; i++) {
+            c = uint8(bytes(_vanity_url)[i]);
+            if ((c < 48 || c > 122 || (c > 57 && c < 65) || (c > 90 && c < 97)) && (c != 95)) {
+                return false;
+            }
+                
+        }
+
         return true;
     }
 

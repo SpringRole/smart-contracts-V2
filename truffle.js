@@ -3,7 +3,7 @@ var HDWalletProvider = require('truffle-hdwallet-provider-privkey');
 module.exports = {
   networks: {
     development: {
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 8545,
       gas: 6721975,
       network_id: '*' // Match any network id
@@ -21,7 +21,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.4.24'
+      version: '0.5.10'
     }
   }
 };
