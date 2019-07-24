@@ -5466,10 +5466,10 @@ synchronous-promise@^2.0.6:
   resolved "https://registry.yarnpkg.com/synchronous-promise/-/synchronous-promise-2.0.9.tgz#b83db98e9e7ae826bf9c8261fd8ac859126c780a"
   integrity sha512-LO95GIW16x69LuND1nuuwM4pjgFGupg7pZ/4lU86AmchPKrhk0o2tpMU2unXRrqo81iAFe1YJ0nAGEVwsrZAgg==
 
-tabookey-gasless@0.4.0-beta1:
-  version "0.4.0-beta1"
-  resolved "https://registry.yarnpkg.com/tabookey-gasless/-/tabookey-gasless-0.4.0-beta1.tgz#66fe5097456ad55ed216979183c083fc2a6b7031"
-  integrity sha512-PCDoIydj9e/RpXA6uQSPwfsh4PeSB4sSqa1LWubvN3Vf+SmDONWdxYrGSZ6BiFe2r40K/6AnXh3kMWb6J2JuxA==
+tabookey-gasless@0.4.0-beta2:
+  version "0.4.0-beta2"
+  resolved "https://registry.yarnpkg.com/tabookey-gasless/-/tabookey-gasless-0.4.0-beta2.tgz#eff62d53ac348794ff7224c06131304cc823f8c5"
+  integrity sha512-IDhDGkR+8tckgnVyPFXxKMkJqA5e5y2DuuWeVWOV2Em8Y0NUY3sLMSpTWVkeHzZGeKJBi9etL4ZTK971Fi/BgQ==
   dependencies:
     "@0x/contracts-utils" "3.1.1"
     abi-decoder "^1.2.0"
