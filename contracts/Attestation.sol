@@ -14,7 +14,7 @@ contract Attestation is Ownable, RelayRecipient {
     event AttestByOwner(string _address, string _type, string _data);
 
     event RecipientPreCall();
-    event RecipientPostCall(uint usedGas, bytes32 preRetVal);
+    event RecipientPostCall(uint256 transactionFee, uint256 gasPrice, uint256 actualCharge, bool success, bytes32 preRetVal);
 
 
     mapping (address => bool) public relaysWhitelist;
@@ -58,52 +58,36 @@ contract Attestation is Ownable, RelayRecipient {
     function acceptRelayedCall(
         address relay,
         address from,
-        bytes memory, /*encodedFunction*/
-        uint, /*gasPrice*/
-        uint, /*transactionFee*/
-        bytes memory, /*signature*/
-        bytes memory /*approvalData*/
-    ) 
-        public view returns(uint) 
+        bytes calldata encodedFunction,
+        uint256 transactionFee,
+        uint256 gasPrice,
+        uint256 gasLimit,
+        uint256 nonce,
+        bytes calldata approvalData,
+        uint256 maxPossibleCharge
+    )
+        external view returns (uint256, bytes memory) 
     {
         if (relaysWhitelist[relay]) {
-            return 0;
+            return (0, "");
         }
         
         if (from == blacklisted) {
-            return 3;
+            return (3, "");
         }
 
-        if ( rejectAcceptRelayCall ) {
-            return 12;
-        } 
-
-        return 0;
+        return (0, abi.encode(relay, from, encodedFunction, transactionFee, gasPrice, gasLimit, nonce, approvalData, maxPossibleCharge));
     }
 
-    function preRelayedCall(
-        address, /*relay*/
-        address, /*from*/
-        bytes memory, /*encodedFunction*/
-        uint /*transactionFee*/
-    )
-        public returns (bytes32)
-    {
+    function preRelayedCall(bytes calldata context) external returns (bytes32) {
         emit RecipientPreCall();
+        return bytes32(uint(123456));
     }
 
-    function postRelayedCall(
-        address, /*relay*/
-        address, /*from*/
-        bytes memory, /*encodedFunction*/
-        bool, /*success*/
-        uint usedGas,
-        uint transactionFee,
-        bytes32 preRetVal
-    ) 
-        public
-    {
-        emit RecipientPostCall(usedGas * tx.gasprice * (transactionFee + 100)/100, preRetVal);
+    function postRelayedCall(bytes calldata context, bool success, uint actualCharge, bytes32 preRetVal) external {
+        ( , , , uint256 transactionFee, uint256 gasPrice, , , , ) = abi.decode(context, (
+            address, address, bytes, uint256, uint256, uint256, uint256, bytes, uint256));
+        emit RecipientPostCall(transactionFee, gasPrice, actualCharge, success, preRetVal);
     }
 
     function withdrawAllBalance() private returns (uint256) {
